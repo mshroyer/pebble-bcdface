@@ -48,10 +48,11 @@ static void draw_digit(Layer *layer, GContext *ctx,
 
 	for (i = 0; i < bits; i++) {
 		point = GPoint(x_coord, bounds.size.h - RADIUS * (3 * i + 2));
-		if (val & 1)
+		if (val & 1) {
 			graphics_fill_circle(ctx, point, RADIUS);
-		else
+		} else {
 			graphics_draw_circle(ctx, point, RADIUS);
+		}
 
 		val >>= 1;
 	}
@@ -86,8 +87,9 @@ static void handle_tick(struct tm *tick_time, TimeUnits units_changed)
 
 static void handle_bt(bool bt_state)
 {
-	if (last_bt_state && !bt_state)
+	if (last_bt_state && !bt_state) {
 		vibes_double_pulse();
+	}
 
 	last_bt_state = bt_state;
 	layer_set_hidden(bitmap_layer_get_layer(bt_layer), bt_state);
