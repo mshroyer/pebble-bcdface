@@ -1,19 +1,22 @@
 {
-  "name": "pebble-bcdface",
+  "name": "bcdface",
   "author": "Mark Shroyer",
   "version": "1.0.0",
   "keywords": [
     "pebble-app"
   ],
   "private": true,
+  "capabilities": [
+    "configurable"
+  ],
   "dependencies": {
     "pebble-clay": "^1.0.4"
   },
   "pebble": {
-    "displayName": "pebble-bcdface",
+    "displayName": "BCD",
     "uuid": "ffb82ae0-b13c-472e-b79a-30b6e93b3472",
     "sdkVersion": "3",
-    "enableMultiJS": false,
+    "enableMultiJS": true,
     "targetPlatforms": [
       "aplite"
     ],
@@ -21,7 +24,8 @@
       "watchface": true
     },
     "messageKeys": [
-      "dummy"
+      "SecondTick",
+      "NotifyDisconnect"
     ],
     "resources": {
       "media": [
