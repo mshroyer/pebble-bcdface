@@ -178,7 +178,7 @@ static void init(void) {
 		.unload = window_unload,
 	});
 	window_set_background_color(window, GColorBlack);
-	window_set_fullscreen(window, true);
+	/* window_set_fullscreen(window, true); */
 	window_stack_push(window, true);
 }
 
@@ -194,4 +194,6 @@ int main(void) {
 
 	app_event_loop();
 	deinit();
+
+	return 0;
 }
