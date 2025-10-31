@@ -31,6 +31,9 @@ static BitmapLayer *bt_layer = NULL;
 static bool last_bt_state = false;
 #endif
 
+/* dot radius */
+static int16_t radius;
+
 /* offset of the first column */
 static int16_t col_offset;
 
@@ -42,16 +45,16 @@ static void draw_digit(Layer *layer, GContext *ctx,
                        int col, int bits, int val)
 {
 	const GRect bounds = layer_get_bounds(layer);
-	const int16_t x_coord = col_offset + RADIUS + (2 * RADIUS + col_spacing) * col;
+	const int16_t x_coord = col_offset + radius + (2 * radius + col_spacing) * col;
 	GPoint point;
 	int i;
 
 	for (i = 0; i < bits; i++) {
-		point = GPoint(x_coord, bounds.size.h - RADIUS * (3 * i + 2));
+		point = GPoint(x_coord, bounds.size.h - radius * (3 * i + 2));
 		if (val & 1) {
-			graphics_fill_circle(ctx, point, RADIUS);
+			graphics_fill_circle(ctx, point, radius);
 		} else {
-			graphics_draw_circle(ctx, point, RADIUS);
+			graphics_draw_circle(ctx, point, radius);
 		}
 
 		val >>= 1;
@@ -101,6 +104,7 @@ static void window_load(Window *window) {
 	Layer *window_layer = window_get_root_layer(window);
 	const GRect bounds = layer_get_bounds(window_layer);
 
+	radius = RADIUS;
 	col_spacing = (bounds.size.w - 2 * NUM_COLUMNS * RADIUS) / (NUM_COLUMNS + 1);
 	col_offset = (bounds.size.w - col_spacing * (NUM_COLUMNS - 1) - 2 * NUM_COLUMNS * RADIUS) / 2;
 
