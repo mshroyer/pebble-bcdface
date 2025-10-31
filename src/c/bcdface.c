@@ -4,7 +4,7 @@
 /* #define SHOW_SECONDS */
 
 /* Pulse vibrate when phone disconnects? */
-#define NOTIFY_DISCONNECT
+/* #define NOTIFY_DISCONNECT */
 
 
 #ifdef SHOW_SECONDS
@@ -24,7 +24,7 @@ static Window *window = NULL;
 static Layer *main_layer = NULL;
 static TextLayer *date_layer = NULL;
 static char *date_str = NULL;
-static struct tm *now = NULL;
+/* static struct tm *now = NULL; */
 #ifdef NOTIFY_DISCONNECT
 static GBitmap *bt_bitmap = NULL;
 static BitmapLayer *bt_layer = NULL;
@@ -60,6 +60,9 @@ static void draw_digit(Layer *layer, GContext *ctx,
 
 static void update_proc(Layer *layer, GContext *ctx)
 {
+	time_t t = time(NULL);
+	struct tm *now = localtime(&t);
+
 	graphics_context_set_stroke_color(ctx, GColorWhite);
 	graphics_context_set_fill_color(ctx, GColorWhite);
 
@@ -75,12 +78,9 @@ static void update_proc(Layer *layer, GContext *ctx)
 
 static void handle_tick(struct tm *tick_time, TimeUnits units_changed)
 {
-	now = tick_time; /* TODO is this actually safe? */
-
-	strftime(date_str, DATE_STR_SZ, "%a %b %d", now);
-	text_layer_set_text(date_layer, date_str);
-
 	layer_mark_dirty(main_layer);
+	strftime(date_str, DATE_STR_SZ, "%a %b %d", tick_time);
+	text_layer_set_text(date_layer, date_str);
 }
 
 #ifdef NOTIFY_DISCONNECT
@@ -171,6 +171,7 @@ static void window_unload(Window *window) {
 
 static void init(void) {
 	date_str = malloc(DATE_STR_SZ);
+	/* now = malloc(sizeof(struct tm)); */
 
 	window = window_create();
 	window_set_window_handlers(window, (WindowHandlers) {
@@ -180,13 +181,13 @@ static void init(void) {
 		.unload = window_unload,
 	});
 	window_set_background_color(window, GColorBlack);
-	/* window_set_fullscreen(window, true); */
 	window_stack_push(window, true);
 }
 
 static void deinit(void) {
 	window_destroy(window);
 	free(date_str);
+	/* free(now); */
 }
 
 int main(void) {
