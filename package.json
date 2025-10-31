@@ -2,9 +2,13 @@
   "name": "pebble-bcdface",
   "author": "Mark Shroyer",
   "version": "1.0.0",
-  "keywords": ["pebble-app"],
+  "keywords": [
+    "pebble-app"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "pebble-clay": "^1.0.4"
+  },
   "pebble": {
     "displayName": "pebble-bcdface",
     "uuid": "ffb82ae0-b13c-472e-b79a-30b6e93b3472",

@@ -1,4 +1,5 @@
 .lock-*
+node_modules/
 
 # Ignore build generated files
 build
