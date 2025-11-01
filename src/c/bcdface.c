@@ -30,8 +30,7 @@ static bool config_bt = false;
 
 /*** Derived values ***/
 static int16_t dot_radius;
-static int16_t col_offset;
-static int16_t col_spacing;
+static int16_t col_offset, col_spacing;
 
 /*** Runtime state ***/
 static char date_str[DATE_STR_SZ];
@@ -98,13 +97,31 @@ static void handle_bt(bool bt_state)
 
 #endif /* defined NOTIFY_DISCONNECT */
 
-static void window_load(Window *window) {
+/***
+ * Calculate and save derived values based on current configuration.
+ */
+static void update_derived() {
 	Layer *window_layer = window_get_root_layer(window);
 	const GRect bounds = layer_get_bounds(window_layer);
+	const int16_t num_cols = config_seconds ? 6 : 4;
 
-	dot_radius = RADIUS;
-	col_spacing = (bounds.size.w - 2 * NUM_COLUMNS * dot_radius) / (NUM_COLUMNS + 1);
-	col_offset = (bounds.size.w - col_spacing * (NUM_COLUMNS - 1) - 2 * NUM_COLUMNS * dot_radius) / 2;
+	if (config_seconds) {
+		dot_radius = 8;
+	} else {
+		dot_radius = 10;
+	}
+
+	col_spacing = (bounds.size.w - 2 * num_cols * dot_radius) /
+		(num_cols + 1);
+	col_offset = (bounds.size.w - col_spacing * (num_cols - 1) -
+		      2 * num_cols * dot_radius) / 2;
+}
+
+static void window_load(Window *window) {
+	update_derived();
+
+	Layer *window_layer = window_get_root_layer(window);
+	const GRect bounds = layer_get_bounds(window_layer);
 
 	main_layer = layer_create((GRect) {
 		.origin = { 0, 0 },
