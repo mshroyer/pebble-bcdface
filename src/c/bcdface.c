@@ -1,15 +1,5 @@
 #include <pebble.h>
 
-#ifdef SHOW_SECONDS
-#define NUM_COLUMNS 6
-#define RADIUS 8
-#define TICK_UNIT SECOND_UNIT
-#else
-#define NUM_COLUMNS 4
-#define RADIUS 10
-#define TICK_UNIT MINUTE_UNIT
-#endif
-
 #define DATE_STR_SZ 11
 
 
@@ -29,6 +19,7 @@ static bool config_seconds = false;
 static bool config_bt = false;
 
 /*** Derived values ***/
+static TimeUnits tick_unit;
 static int16_t dot_radius;
 static int16_t col_offset, col_spacing;
 
@@ -83,8 +74,6 @@ static void handle_tick(struct tm *tick_time, TimeUnits units_changed)
 	text_layer_set_text(date_layer, date_str);
 }
 
-#ifdef NOTIFY_DISCONNECT
-
 static void handle_bt(bool bt_state)
 {
 	if (last_bt_state && !bt_state) {
@@ -95,9 +84,7 @@ static void handle_bt(bool bt_state)
 	layer_set_hidden(bitmap_layer_get_layer(bt_layer), bt_state);
 }
 
-#endif /* defined NOTIFY_DISCONNECT */
-
-/***
+/**
  * Calculate and save derived values based on current configuration.
  */
 static void update_derived() {
@@ -106,8 +93,10 @@ static void update_derived() {
 	const int16_t num_cols = config_seconds ? 6 : 4;
 
 	if (config_seconds) {
+		tick_unit = SECOND_UNIT;
 		dot_radius = 8;
 	} else {
+		tick_unit = MINUTE_UNIT;
 		dot_radius = 10;
 	}
 
@@ -118,6 +107,8 @@ static void update_derived() {
 }
 
 static void window_load(Window *window) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_load callback");
+
 	update_derived();
 
 	Layer *window_layer = window_get_root_layer(window);
@@ -131,21 +122,17 @@ static void window_load(Window *window) {
 		.origin = { 0, 0 },
 		.size = { bounds.size.w, 40 }
 	});
-#ifdef NOTIFY_DISCONNECT
 	bt_bitmap = gbitmap_create_with_resource(RESOURCE_ID_PHONE);
 	bt_layer = bitmap_layer_create((GRect) {
 		.origin = { 0, 6 },
 		.size = { 20, 20 }
 	});
 	bitmap_layer_set_bitmap(bt_layer, bt_bitmap);
-#endif
 
 	layer_set_update_proc(main_layer, update_proc);
 	layer_add_child(window_layer, main_layer);
 	layer_add_child(window_layer, text_layer_get_layer(date_layer));
-#ifdef NOTIFY_DISCONNECT
 	layer_add_child(window_layer, bitmap_layer_get_layer(bt_layer));
-#endif
 
 	text_layer_set_background_color(date_layer, GColorBlack);
 	text_layer_set_text_color(date_layer, GColorWhite);
@@ -153,10 +140,33 @@ static void window_load(Window *window) {
 	text_layer_set_font(date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 }
 
-static void window_appear(Window *window) {
+/**
+ * Idempotentally subscribe to the timer and, if appropriate, BT event handlers.
+ */
+static void subscribe_event_handlers() {
+	tick_timer_service_subscribe(tick_unit, handle_tick);
+	if (config_bt) {
+		bluetooth_connection_service_subscribe(handle_bt);
+	} else {
+		bluetooth_connection_service_unsubscribe();
+	}
+}
+
+static void manually_invoke_event_handlers() {
 	const time_t now_time = time(NULL);
 
-	tick_timer_service_subscribe(TICK_UNIT, handle_tick);
+	handle_tick(localtime(&now_time), tick_unit);
+	if (config_bt) {
+		handle_bt(bluetooth_connection_service_peek());
+	} else {
+		layer_set_hidden(bitmap_layer_get_layer(bt_layer), true);
+	}
+}
+
+static void window_appear(Window *window) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_appear callback");
+
+	subscribe_event_handlers();
 
 	/*
 	 * Force immediate redraw so there isn't an annoying pause before
@@ -164,33 +174,27 @@ static void window_appear(Window *window) {
 	 * face.  This call is also necessary so that "now" gets set before
 	 * the first run of update_proc()
 	 */
-	handle_tick(localtime(&now_time), TICK_UNIT);
-
-#ifdef NOTIFY_DISCONNECT
-	bluetooth_connection_service_subscribe(handle_bt);
-	handle_bt(bluetooth_connection_service_peek());
-#endif
+	manually_invoke_event_handlers();
 }
 
 static void window_disappear(Window *window) {
-#ifdef NOTIFY_DISCONNECT
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_disappear callback");
+
 	bluetooth_connection_service_unsubscribe();
-#endif
 	tick_timer_service_unsubscribe();
 }
 
 static void window_unload(Window *window) {
-#ifdef NOTIFY_DISCONNECT
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_unload callback");
+
 	bitmap_layer_destroy(bt_layer);
 	gbitmap_destroy(bt_bitmap);
-#endif
 	text_layer_destroy(date_layer);
 	layer_destroy(main_layer);
 }
 
 static void init(void) {
-	/* date_str = malloc(DATE_STR_SZ); */
-	/* now = malloc(sizeof(struct tm)); */
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
 
 	window = window_create();
 	window_set_window_handlers(window, (WindowHandlers) {
@@ -204,9 +208,9 @@ static void init(void) {
 }
 
 static void deinit(void) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "deinit callback");
+
 	window_destroy(window);
-	/* free(date_str); */
-	/* free(now); */
 }
 
 int main(void) {
