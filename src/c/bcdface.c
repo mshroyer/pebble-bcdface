@@ -1,12 +1,5 @@
 #include <pebble.h>
 
-/* Show seconds place? */
-/* #define SHOW_SECONDS */
-
-/* Pulse vibrate when phone disconnects? */
-/* #define NOTIFY_DISCONNECT */
-
-
 #ifdef SHOW_SECONDS
 #define NUM_COLUMNS 6
 #define RADIUS 8
@@ -20,41 +13,46 @@
 #define DATE_STR_SZ 11
 
 
+/*** Windows and layers ***/
 static Window *window = NULL;
 static Layer *main_layer = NULL;
 static TextLayer *date_layer = NULL;
-static char *date_str = NULL;
-/* static struct tm *now = NULL; */
-#ifdef NOTIFY_DISCONNECT
-static GBitmap *bt_bitmap = NULL;
 static BitmapLayer *bt_layer = NULL;
-static bool last_bt_state = false;
-#endif
 
-/* dot radius */
-static int16_t radius;
+/*** Resources ***/
+static GBitmap *bt_bitmap = NULL;
 
-/* offset of the first column */
+/*** Mutable configuration ***/
+/* Whether to display seconds */
+static bool config_seconds = false;
+/* Whether to notify on Bluetooth disconnect */
+static bool config_bt = false;
+
+/*** Derived values ***/
+static int16_t dot_radius;
 static int16_t col_offset;
-
-/* spacing between adjacent columns */
 static int16_t col_spacing;
+
+/*** Runtime state ***/
+static char date_str[DATE_STR_SZ];
+static bool last_bt_state = false;
 
 
 static void draw_digit(Layer *layer, GContext *ctx,
                        int col, int bits, int val)
 {
 	const GRect bounds = layer_get_bounds(layer);
-	const int16_t x_coord = col_offset + radius + (2 * radius + col_spacing) * col;
+	const int16_t x_coord = col_offset + dot_radius +
+		(2 * dot_radius + col_spacing) * col;
 	GPoint point;
 	int i;
 
 	for (i = 0; i < bits; i++) {
-		point = GPoint(x_coord, bounds.size.h - radius * (3 * i + 2));
+		point = GPoint(x_coord, bounds.size.h - dot_radius * (3 * i + 2));
 		if (val & 1) {
-			graphics_fill_circle(ctx, point, radius);
+			graphics_fill_circle(ctx, point, dot_radius);
 		} else {
-			graphics_draw_circle(ctx, point, radius);
+			graphics_draw_circle(ctx, point, dot_radius);
 		}
 
 		val >>= 1;
@@ -73,10 +71,10 @@ static void update_proc(Layer *layer, GContext *ctx)
 	draw_digit(layer, ctx, 1, 4, now->tm_hour % 10);
 	draw_digit(layer, ctx, 2, 3, now->tm_min  / 10);
 	draw_digit(layer, ctx, 3, 4, now->tm_min  % 10);
-#ifdef SHOW_SECONDS
-	draw_digit(layer, ctx, 4, 3, now->tm_sec  / 10);
-	draw_digit(layer, ctx, 5, 4, now->tm_sec  % 10);
-#endif
+	if (config_seconds) {
+		draw_digit(layer, ctx, 4, 3, now->tm_sec  / 10);
+		draw_digit(layer, ctx, 5, 4, now->tm_sec  % 10);
+	}
 }
 
 static void handle_tick(struct tm *tick_time, TimeUnits units_changed)
@@ -104,9 +102,9 @@ static void window_load(Window *window) {
 	Layer *window_layer = window_get_root_layer(window);
 	const GRect bounds = layer_get_bounds(window_layer);
 
-	radius = RADIUS;
-	col_spacing = (bounds.size.w - 2 * NUM_COLUMNS * RADIUS) / (NUM_COLUMNS + 1);
-	col_offset = (bounds.size.w - col_spacing * (NUM_COLUMNS - 1) - 2 * NUM_COLUMNS * RADIUS) / 2;
+	dot_radius = RADIUS;
+	col_spacing = (bounds.size.w - 2 * NUM_COLUMNS * dot_radius) / (NUM_COLUMNS + 1);
+	col_offset = (bounds.size.w - col_spacing * (NUM_COLUMNS - 1) - 2 * NUM_COLUMNS * dot_radius) / 2;
 
 	main_layer = layer_create((GRect) {
 		.origin = { 0, 0 },
@@ -174,7 +172,7 @@ static void window_unload(Window *window) {
 }
 
 static void init(void) {
-	date_str = malloc(DATE_STR_SZ);
+	/* date_str = malloc(DATE_STR_SZ); */
 	/* now = malloc(sizeof(struct tm)); */
 
 	window = window_create();
@@ -190,7 +188,7 @@ static void init(void) {
 
 static void deinit(void) {
 	window_destroy(window);
-	free(date_str);
+	/* free(date_str); */
 	/* free(now); */
 }
 
