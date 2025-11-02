@@ -96,12 +96,13 @@ static void handle_tick(struct tm *tick_time, TimeUnits units_changed)
 
 static void handle_bt(bool bt_state)
 {
-	if (last_bt_state && !bt_state) {
-		vibes_double_pulse();
+	if (current_config.notify_disconnect) {
+		if (last_bt_state && !bt_state) {
+			vibes_double_pulse();
+		}
+		layer_set_hidden(bitmap_layer_get_layer(bt_layer), bt_state);
 	}
-
 	last_bt_state = bt_state;
-	layer_set_hidden(bitmap_layer_get_layer(bt_layer), bt_state);
 }
 
 /**
@@ -171,18 +172,14 @@ static void window_load(Window *window) {
  */
 static void subscribe_event_handlers() {
 	tick_timer_service_subscribe(derived.tick_unit, handle_tick);
-	if (current_config.second_tick) {
-		bluetooth_connection_service_subscribe(handle_bt);
-	} else {
-		bluetooth_connection_service_unsubscribe();
-	}
+	bluetooth_connection_service_subscribe(handle_bt);
 }
 
 static void manually_invoke_event_handlers() {
 	const time_t now_time = time(NULL);
 
 	handle_tick(localtime(&now_time), derived.tick_unit);
-	if (current_config.second_tick) {
+	if (current_config.notify_disconnect) {
 		handle_bt(bluetooth_connection_service_peek());
 	} else {
 		layer_set_hidden(bitmap_layer_get_layer(bt_layer), true);
@@ -225,7 +222,7 @@ static void window_unload(Window *window) {
 
 static config_t default_config() {
 	return (config_t) {
-		.notify_disconnect = false,
+		.notify_disconnect = true,
 		.second_tick = false,
 	};
 }
