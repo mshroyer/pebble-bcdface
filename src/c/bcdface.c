@@ -46,18 +46,15 @@ static char date_str[DATE_STR_SZ];
 static bool last_bt_state = false;
 static bool window_visible = false;
 
-static void draw_digit(Layer *layer, GContext *ctx, int col, int bits,
-                       int val) {
+static void draw_digit(Layer *layer, GContext *ctx, int col, int bits, int val) {
     const GRect bounds = layer_get_bounds(layer);
-    const int16_t x_coord =
-        derived.col_offset + derived.dot_radius +
-        (2 * derived.dot_radius + derived.col_spacing) * col;
+    const int16_t x_coord = derived.col_offset + derived.dot_radius +
+                            (2 * derived.dot_radius + derived.col_spacing) * col;
     GPoint point;
     int i;
 
     for (i = 0; i < bits; i++) {
-        point =
-            GPoint(x_coord, bounds.size.h - derived.dot_radius * (3 * i + 2));
+        point = GPoint(x_coord, bounds.size.h - derived.dot_radius * (3 * i + 2));
         if (val & 1) {
             graphics_fill_circle(ctx, point, derived.dot_radius);
         } else {
@@ -121,11 +118,10 @@ static derived_params_t compute_derived(const config_t *config) {
         result.dot_radius = 8;
     }
 
-    result.col_spacing =
-        (bounds.size.w - 2 * num_cols * result.dot_radius) / (num_cols + 1);
-    result.col_offset = (bounds.size.w - result.col_spacing * (num_cols - 1) -
-                         2 * num_cols * result.dot_radius) /
-                        2;
+    result.col_spacing = (bounds.size.w - 2 * num_cols * result.dot_radius) / (num_cols + 1);
+    result.col_offset =
+        (bounds.size.w - result.col_spacing * (num_cols - 1) - 2 * num_cols * result.dot_radius) /
+        2;
 
     return result;
 }
@@ -138,10 +134,8 @@ static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     const GRect bounds = layer_get_bounds(window_layer);
 
-    main_layer = layer_create(
-        (GRect){.origin = {0, 0}, .size = {bounds.size.w, bounds.size.h}});
-    date_layer = text_layer_create(
-        (GRect){.origin = {0, 0}, .size = {bounds.size.w, 40}});
+    main_layer = layer_create((GRect){.origin = {0, 0}, .size = {bounds.size.w, bounds.size.h}});
+    date_layer = text_layer_create((GRect){.origin = {0, 0}, .size = {bounds.size.w, 40}});
     bt_bitmap = gbitmap_create_with_resource(RESOURCE_ID_PHONE);
     bt_layer = bitmap_layer_create((GRect){.origin = {0, 6}, .size = {20, 20}});
     bitmap_layer_set_bitmap(bt_layer, bt_bitmap);
@@ -154,8 +148,7 @@ static void window_load(Window *window) {
     text_layer_set_background_color(date_layer, GColorBlack);
     text_layer_set_text_color(date_layer, GColorWhite);
     text_layer_set_text_alignment(date_layer, GTextAlignmentCenter);
-    text_layer_set_font(date_layer,
-                        fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+    text_layer_set_font(date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 }
 
 /**
@@ -252,8 +245,8 @@ static void handle_inbox_received(DictionaryIterator *iter, void *context) {
         manually_invoke_event_handlers();
     }
 
-    if (persist_write_data(CONFIG_STORAGE_KEY, &current_config,
-                           sizeof(current_config)) != sizeof(current_config)) {
+    if (persist_write_data(CONFIG_STORAGE_KEY, &current_config, sizeof(current_config)) !=
+        sizeof(current_config)) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "Error persisting config!");
     } else {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Successfully persisted config");
@@ -261,8 +254,7 @@ static void handle_inbox_received(DictionaryIterator *iter, void *context) {
 }
 
 static void handle_inbox_dropped(AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d",
-            reason);
+    APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
 }
 
 static void init(void) {
@@ -273,14 +265,11 @@ static void init(void) {
         APP_LOG(APP_LOG_LEVEL_INFO, "No persisted config found, using default");
         current_config = default_config();
     } else if (persist_get_size(CONFIG_STORAGE_KEY) != sizeof(current_config)) {
-        APP_LOG(APP_LOG_LEVEL_WARNING,
-                "Persisted config size mismatch! Using default instead");
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Persisted config size mismatch! Using default instead");
         current_config = default_config();
-    } else if (persist_read_data(CONFIG_STORAGE_KEY, &current_config,
-                                 sizeof(current_config)) !=
+    } else if (persist_read_data(CONFIG_STORAGE_KEY, &current_config, sizeof(current_config)) !=
                sizeof(current_config)) {
-        APP_LOG(APP_LOG_LEVEL_ERROR,
-                "Error loading persisted config! Using default instead");
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error loading persisted config! Using default instead");
         current_config = default_config();
     } else {
         APP_LOG(APP_LOG_LEVEL_INFO, "Loaded persisted config");
@@ -288,8 +277,7 @@ static void init(void) {
 
     app_message_register_inbox_received(handle_inbox_received);
     app_message_register_inbox_dropped(handle_inbox_dropped);
-    app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM,
-                     APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
+    app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
 
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers){
@@ -311,8 +299,7 @@ static void deinit(void) {
 int main(void) {
     init();
 
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p",
-            window);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
 
     app_event_loop();
     deinit();
