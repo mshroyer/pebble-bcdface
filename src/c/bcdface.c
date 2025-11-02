@@ -193,8 +193,35 @@ static void window_unload(Window *window) {
 	layer_destroy(main_layer);
 }
 
+static void handle_inbox_received(DictionaryIterator *iter, void *context) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "handle_inbox_received callback");
+
+	Tuple *seconds_tuple = dict_find(iter, MESSAGE_KEY_SecondTick);
+	if (seconds_tuple) {
+		config_seconds = seconds_tuple->value->int32 == 1;
+	}
+
+	Tuple *bt_tuple = dict_find(iter, MESSAGE_KEY_NotifyDisconnect);
+	if (bt_tuple) {
+		config_bt = bt_tuple->value->int32 == 1;
+	}
+
+	update_derived();
+	subscribe_event_handlers();
+	manually_invoke_event_handlers();
+}
+
+static void handle_inbox_dropped(AppMessageResult reason, void *context) {
+	APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
+}
+
 static void init(void) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
+
+	app_message_register_inbox_received(handle_inbox_received);
+	app_message_register_inbox_dropped(handle_inbox_dropped);
+	app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM,
+			 APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
 
 	window = window_create();
 	window_set_window_handlers(window, (WindowHandlers) {
