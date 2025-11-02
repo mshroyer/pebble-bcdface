@@ -12,16 +12,33 @@ static BitmapLayer *bt_layer = NULL;
 /*** Resources ***/
 static GBitmap *bt_bitmap = NULL;
 
-/*** Mutable configuration ***/
-/* Whether to display seconds */
-static bool config_seconds = false;
-/* Whether to notify on Bluetooth disconnect */
-static bool config_bt = false;
+/*** Runtime configuration ***/
+typedef struct {
+	/* Whether to notify when the phone disconnects */
+	bool notify_disconnect;
 
-/*** Derived values ***/
-static TimeUnits tick_unit;
-static int16_t dot_radius;
-static int16_t col_offset, col_spacing;
+	/* Whether to show seconds */
+	bool second_tick;
+} config_t;
+
+static config_t config;
+
+/*** Derived parameters ***/
+typedef struct {
+	/* Timer event unit */
+	TimeUnits tick_unit;
+
+	/* The radius of the dots and circles */
+	int16_t dot_radius;
+
+	/* Pixel offset of the first column */
+	int16_t col_offset;
+
+	/* Pixel spacing between columns */
+	int16_t col_spacing;
+} derived_params_t;
+
+static derived_params_t derived;
 
 /*** Runtime state ***/
 static char date_str[DATE_STR_SZ];
@@ -32,17 +49,17 @@ static void draw_digit(Layer *layer, GContext *ctx,
                        int col, int bits, int val)
 {
 	const GRect bounds = layer_get_bounds(layer);
-	const int16_t x_coord = col_offset + dot_radius +
-		(2 * dot_radius + col_spacing) * col;
+	const int16_t x_coord = derived.col_offset + derived.dot_radius +
+		(2 * derived.dot_radius + derived.col_spacing) * col;
 	GPoint point;
 	int i;
 
 	for (i = 0; i < bits; i++) {
-		point = GPoint(x_coord, bounds.size.h - dot_radius * (3 * i + 2));
+		point = GPoint(x_coord, bounds.size.h - derived.dot_radius * (3 * i + 2));
 		if (val & 1) {
-			graphics_fill_circle(ctx, point, dot_radius);
+			graphics_fill_circle(ctx, point, derived.dot_radius);
 		} else {
-			graphics_draw_circle(ctx, point, dot_radius);
+			graphics_draw_circle(ctx, point, derived.dot_radius);
 		}
 
 		val >>= 1;
@@ -61,7 +78,7 @@ static void update_proc(Layer *layer, GContext *ctx)
 	draw_digit(layer, ctx, 1, 4, now->tm_hour % 10);
 	draw_digit(layer, ctx, 2, 3, now->tm_min  / 10);
 	draw_digit(layer, ctx, 3, 4, now->tm_min  % 10);
-	if (config_seconds) {
+	if (config.second_tick) {
 		draw_digit(layer, ctx, 4, 3, now->tm_sec  / 10);
 		draw_digit(layer, ctx, 5, 4, now->tm_sec  % 10);
 	}
@@ -87,29 +104,35 @@ static void handle_bt(bool bt_state)
 /**
  * Calculate and save derived values based on current configuration.
  */
-static void update_derived() {
+static derived_params_t compute_derived(const config_t *config) {
+	derived_params_t result = {
+		.tick_unit = MINUTE_UNIT,
+		.dot_radius = 10,
+		.col_spacing = 0,
+		.col_offset = 0,
+	};
+
 	Layer *window_layer = window_get_root_layer(window);
 	const GRect bounds = layer_get_bounds(window_layer);
-	const int16_t num_cols = config_seconds ? 6 : 4;
+	const int16_t num_cols = config->second_tick ? 6 : 4;
 
-	if (config_seconds) {
-		tick_unit = SECOND_UNIT;
-		dot_radius = 8;
-	} else {
-		tick_unit = MINUTE_UNIT;
-		dot_radius = 10;
+	if (config->second_tick) {
+		result.tick_unit = SECOND_UNIT;
+		result.dot_radius = 8;
 	}
 
-	col_spacing = (bounds.size.w - 2 * num_cols * dot_radius) /
+	result.col_spacing = (bounds.size.w - 2 * num_cols * result.dot_radius) /
 		(num_cols + 1);
-	col_offset = (bounds.size.w - col_spacing * (num_cols - 1) -
-		      2 * num_cols * dot_radius) / 2;
+	result.col_offset = (bounds.size.w - result.col_spacing * (num_cols - 1) -
+		      2 * num_cols * result.dot_radius) / 2;
+
+	return result;
 }
 
 static void window_load(Window *window) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_load callback");
 
-	update_derived();
+	derived = compute_derived(&config);
 
 	Layer *window_layer = window_get_root_layer(window);
 	const GRect bounds = layer_get_bounds(window_layer);
@@ -144,8 +167,8 @@ static void window_load(Window *window) {
  * Idempotentally subscribe to the timer and, if appropriate, BT event handlers.
  */
 static void subscribe_event_handlers() {
-	tick_timer_service_subscribe(tick_unit, handle_tick);
-	if (config_bt) {
+	tick_timer_service_subscribe(derived.tick_unit, handle_tick);
+	if (config.second_tick) {
 		bluetooth_connection_service_subscribe(handle_bt);
 	} else {
 		bluetooth_connection_service_unsubscribe();
@@ -155,8 +178,8 @@ static void subscribe_event_handlers() {
 static void manually_invoke_event_handlers() {
 	const time_t now_time = time(NULL);
 
-	handle_tick(localtime(&now_time), tick_unit);
-	if (config_bt) {
+	handle_tick(localtime(&now_time), derived.tick_unit);
+	if (config.second_tick) {
 		handle_bt(bluetooth_connection_service_peek());
 	} else {
 		layer_set_hidden(bitmap_layer_get_layer(bt_layer), true);
@@ -198,15 +221,15 @@ static void handle_inbox_received(DictionaryIterator *iter, void *context) {
 
 	Tuple *seconds_tuple = dict_find(iter, MESSAGE_KEY_SecondTick);
 	if (seconds_tuple) {
-		config_seconds = seconds_tuple->value->int32 == 1;
+		config.second_tick = seconds_tuple->value->int32 == 1;
 	}
 
 	Tuple *bt_tuple = dict_find(iter, MESSAGE_KEY_NotifyDisconnect);
 	if (bt_tuple) {
-		config_bt = bt_tuple->value->int32 == 1;
+		config.notify_disconnect = bt_tuple->value->int32 == 1;
 	}
 
-	update_derived();
+	derived = compute_derived(&config);
 	subscribe_event_handlers();
 	manually_invoke_event_handlers();
 }
@@ -215,8 +238,17 @@ static void handle_inbox_dropped(AppMessageResult reason, void *context) {
 	APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
 }
 
+static config_t default_config() {
+	return (config_t) {
+		.notify_disconnect = false,
+		.second_tick = false,
+	};
+}
+
 static void init(void) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
+
+	config = default_config();
 
 	app_message_register_inbox_received(handle_inbox_received);
 	app_message_register_inbox_dropped(handle_inbox_dropped);
