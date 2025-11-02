@@ -257,7 +257,7 @@ static void handle_inbox_dropped(AppMessageResult reason, void *context) {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
 }
 
-static void init(void) {
+static void init() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
 
     current_config = default_config();
@@ -290,13 +290,13 @@ static void init(void) {
     window_stack_push(window, true);
 }
 
-static void deinit(void) {
+static void deinit() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "deinit callback");
 
     window_destroy(window);
 }
 
-int main(void) {
+int main() {
     init();
 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
