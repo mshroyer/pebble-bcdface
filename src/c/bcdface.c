@@ -29,7 +29,7 @@ typedef struct {
     bool second_tick;
 } config_t;
 
-static config_t current_config;
+static config_t current_config = {0};
 
 /*** Derived parameters ***/
 typedef struct {
@@ -46,7 +46,7 @@ typedef struct {
     int16_t col_spacing;
 } derived_params_t;
 
-static derived_params_t derived;
+static derived_params_t derived = {0};
 
 /*** Runtime state ***/
 static char date_str[DATE_STR_SZ];
