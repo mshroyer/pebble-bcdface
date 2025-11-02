@@ -21,7 +21,7 @@ typedef struct {
 	bool second_tick;
 } config_t;
 
-static config_t config;
+static config_t current_config;
 
 /*** Derived parameters ***/
 typedef struct {
@@ -78,7 +78,7 @@ static void update_proc(Layer *layer, GContext *ctx)
 	draw_digit(layer, ctx, 1, 4, now->tm_hour % 10);
 	draw_digit(layer, ctx, 2, 3, now->tm_min  / 10);
 	draw_digit(layer, ctx, 3, 4, now->tm_min  % 10);
-	if (config.second_tick) {
+	if (current_config.second_tick) {
 		draw_digit(layer, ctx, 4, 3, now->tm_sec  / 10);
 		draw_digit(layer, ctx, 5, 4, now->tm_sec  % 10);
 	}
@@ -132,7 +132,7 @@ static derived_params_t compute_derived(const config_t *config) {
 static void window_load(Window *window) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_load callback");
 
-	derived = compute_derived(&config);
+	derived = compute_derived(&current_config);
 
 	Layer *window_layer = window_get_root_layer(window);
 	const GRect bounds = layer_get_bounds(window_layer);
@@ -168,7 +168,7 @@ static void window_load(Window *window) {
  */
 static void subscribe_event_handlers() {
 	tick_timer_service_subscribe(derived.tick_unit, handle_tick);
-	if (config.second_tick) {
+	if (current_config.second_tick) {
 		bluetooth_connection_service_subscribe(handle_bt);
 	} else {
 		bluetooth_connection_service_unsubscribe();
@@ -179,7 +179,7 @@ static void manually_invoke_event_handlers() {
 	const time_t now_time = time(NULL);
 
 	handle_tick(localtime(&now_time), derived.tick_unit);
-	if (config.second_tick) {
+	if (current_config.second_tick) {
 		handle_bt(bluetooth_connection_service_peek());
 	} else {
 		layer_set_hidden(bitmap_layer_get_layer(bt_layer), true);
@@ -221,15 +221,15 @@ static void handle_inbox_received(DictionaryIterator *iter, void *context) {
 
 	Tuple *seconds_tuple = dict_find(iter, MESSAGE_KEY_SecondTick);
 	if (seconds_tuple) {
-		config.second_tick = seconds_tuple->value->int32 == 1;
+		current_config.second_tick = seconds_tuple->value->int32 == 1;
 	}
 
 	Tuple *bt_tuple = dict_find(iter, MESSAGE_KEY_NotifyDisconnect);
 	if (bt_tuple) {
-		config.notify_disconnect = bt_tuple->value->int32 == 1;
+		current_config.notify_disconnect = bt_tuple->value->int32 == 1;
 	}
 
-	derived = compute_derived(&config);
+	derived = compute_derived(&current_config);
 	subscribe_event_handlers();
 	manually_invoke_event_handlers();
 }
@@ -248,7 +248,7 @@ static config_t default_config() {
 static void init(void) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
 
-	config = default_config();
+	current_config = default_config();
 
 	app_message_register_inbox_received(handle_inbox_received);
 	app_message_register_inbox_dropped(handle_inbox_dropped);
