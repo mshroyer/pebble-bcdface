@@ -14,6 +14,13 @@ static BitmapLayer *bt_layer = NULL;
 static GBitmap *bt_bitmap = NULL;
 
 /*** Runtime configuration ***/
+
+/**
+ * Configuration data
+ *
+ * This will be persisted to local storage, so any new fields should be
+ * appended to the end of the struct for forward compatibility.
+ */
 typedef struct {
     /* Whether to notify when the phone disconnects */
     bool notify_disconnect;
@@ -257,23 +264,34 @@ static void handle_inbox_dropped(AppMessageResult reason, void *context) {
     APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
 }
 
+static void load_config() {
+    current_config = default_config();
+
+    if (!persist_exists(CONFIG_STORAGE_KEY)) {
+        APP_LOG(APP_LOG_LEVEL_INFO, "No persisted config found, using default");
+        return;
+    }
+
+    int persisted_size = persist_get_size(CONFIG_STORAGE_KEY);
+    if ((size_t)persisted_size > sizeof(current_config)) {
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Persisted config larger than ours! Using default instead");
+        return;
+    }
+
+    if (persist_read_data(CONFIG_STORAGE_KEY, &current_config, sizeof(current_config)) !=
+        persisted_size) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error loading persisted config! Restoring default");
+        current_config = default_config();
+        return;
+    }
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "Loaded persisted config");
+}
+
 static void init() {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
 
-    current_config = default_config();
-    if (!persist_exists(CONFIG_STORAGE_KEY)) {
-        APP_LOG(APP_LOG_LEVEL_INFO, "No persisted config found, using default");
-        current_config = default_config();
-    } else if (persist_get_size(CONFIG_STORAGE_KEY) != sizeof(current_config)) {
-        APP_LOG(APP_LOG_LEVEL_WARNING, "Persisted config size mismatch! Using default instead");
-        current_config = default_config();
-    } else if (persist_read_data(CONFIG_STORAGE_KEY, &current_config, sizeof(current_config)) !=
-               sizeof(current_config)) {
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error loading persisted config! Using default instead");
-        current_config = default_config();
-    } else {
-        APP_LOG(APP_LOG_LEVEL_INFO, "Loaded persisted config");
-    }
+    load_config();
 
     app_message_register_inbox_received(handle_inbox_received);
     app_message_register_inbox_dropped(handle_inbox_dropped);
