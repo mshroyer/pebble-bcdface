@@ -1,5 +1,7 @@
 #include <pebble.h>
 
+#define CONFIG_STORAGE_KEY 1
+
 #define DATE_STR_SZ 11
 
 
@@ -261,6 +263,13 @@ static void handle_inbox_received(DictionaryIterator *iter, void *context) {
 		subscribe_event_handlers();
 		manually_invoke_event_handlers();
 	}
+
+	if (persist_write_data(CONFIG_STORAGE_KEY, &current_config, sizeof(current_config)) !=
+	    sizeof(current_config)) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "Error persisting config!");
+	} else {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Successfully persisted config");
+	}
 }
 
 static void handle_inbox_dropped(AppMessageResult reason, void *context) {
@@ -271,6 +280,19 @@ static void init(void) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "init callback");
 
 	current_config = default_config();
+	if (!persist_exists(CONFIG_STORAGE_KEY)) {
+		APP_LOG(APP_LOG_LEVEL_INFO, "No persisted config found, using default");
+		current_config = default_config();
+	} else if (persist_get_size(CONFIG_STORAGE_KEY) != sizeof(current_config)) {
+		APP_LOG(APP_LOG_LEVEL_WARNING, "Persisted config size mismatch! Using default instead");
+		current_config = default_config();
+	} else if (persist_read_data(CONFIG_STORAGE_KEY, &current_config, sizeof(current_config)) !=
+		   sizeof(current_config)) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "Error loading persisted config! Using default instead");
+		current_config = default_config();
+	} else {
+		APP_LOG(APP_LOG_LEVEL_INFO, "Loaded persisted config");
+	}
 
 	app_message_register_inbox_received(handle_inbox_received);
 	app_message_register_inbox_dropped(handle_inbox_dropped);
