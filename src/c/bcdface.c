@@ -43,6 +43,7 @@ static derived_params_t derived;
 /*** Runtime state ***/
 static char date_str[DATE_STR_SZ];
 static bool last_bt_state = false;
+static bool window_visible = false;
 
 
 static void draw_digit(Layer *layer, GContext *ctx,
@@ -189,6 +190,8 @@ static void manually_invoke_event_handlers() {
 static void window_appear(Window *window) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_appear callback");
 
+	window_visible = true;
+
 	subscribe_event_handlers();
 
 	/*
@@ -203,6 +206,8 @@ static void window_appear(Window *window) {
 static void window_disappear(Window *window) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "window_disappear callback");
 
+	window_visible = false;
+
 	bluetooth_connection_service_unsubscribe();
 	tick_timer_service_unsubscribe();
 }
@@ -216,33 +221,50 @@ static void window_unload(Window *window) {
 	layer_destroy(main_layer);
 }
 
-static void handle_inbox_received(DictionaryIterator *iter, void *context) {
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "handle_inbox_received callback");
-
-	Tuple *seconds_tuple = dict_find(iter, MESSAGE_KEY_SecondTick);
-	if (seconds_tuple) {
-		current_config.second_tick = seconds_tuple->value->int32 == 1;
-	}
-
-	Tuple *bt_tuple = dict_find(iter, MESSAGE_KEY_NotifyDisconnect);
-	if (bt_tuple) {
-		current_config.notify_disconnect = bt_tuple->value->int32 == 1;
-	}
-
-	derived = compute_derived(&current_config);
-	subscribe_event_handlers();
-	manually_invoke_event_handlers();
-}
-
-static void handle_inbox_dropped(AppMessageResult reason, void *context) {
-	APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
-}
-
 static config_t default_config() {
 	return (config_t) {
 		.notify_disconnect = false,
 		.second_tick = false,
 	};
+}
+
+static config_t get_config_from_message(const DictionaryIterator *iter) {
+	config_t result = default_config();
+
+	Tuple *seconds_tuple = dict_find(iter, MESSAGE_KEY_SecondTick);
+	if (seconds_tuple) {
+		result.second_tick = seconds_tuple->value->int32 == 1;
+	}
+
+	Tuple *bt_tuple = dict_find(iter, MESSAGE_KEY_NotifyDisconnect);
+	if (bt_tuple) {
+		result.notify_disconnect = bt_tuple->value->int32 == 1;
+	}
+
+	return result;
+}
+
+static void apply_config(const config_t *config) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Applying configuration");
+
+	current_config = *config;
+	derived = compute_derived(config);
+}
+
+static void handle_inbox_received(DictionaryIterator *iter, void *context) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "handle_inbox_received callback");
+
+	config_t new_config = get_config_from_message(iter);
+	apply_config(&new_config);
+
+	if (window_visible) {
+		subscribe_event_handlers();
+		manually_invoke_event_handlers();
+	}
+}
+
+static void handle_inbox_dropped(AppMessageResult reason, void *context) {
+	APP_LOG(APP_LOG_LEVEL_WARNING, "Dropped inbox message, reason = %d", reason);
 }
 
 static void init(void) {
