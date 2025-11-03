@@ -1,5 +1,6 @@
 ---
 BasedOnStyle: Google
+PointerAlignment: Right
 IndentWidth: 4
 ColumnLimit: 100
 ---
