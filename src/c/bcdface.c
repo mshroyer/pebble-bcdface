@@ -125,7 +125,7 @@ static void apply_config(const config_t *config) {
     current_config = *config;
 
     Layer *window_layer = window_get_root_layer(window);
-    const GRect bounds = layer_get_bounds(window_layer);
+    const GRect bounds = layer_get_unobstructed_bounds(window_layer);
     derived_params = compute_derived_params(config, &bounds);
 }
 
@@ -162,7 +162,7 @@ static void load_config() {
  * Draw a single BCD digit.
  */
 static void draw_digit(Layer *layer, GContext *ctx, int col, int bits, int val) {
-    const GRect bounds = layer_get_bounds(layer);
+    const GRect bounds = layer_get_unobstructed_bounds(layer);
     const int16_t x_coord = derived_params.col_offset + derived_params.dot_radius +
                             (2 * derived_params.dot_radius + derived_params.col_spacing) * col;
     GPoint point;
@@ -272,7 +272,7 @@ static void window_load(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "window_load callback");
 
     Layer *window_layer = window_get_root_layer(window);
-    const GRect bounds = layer_get_bounds(window_layer);
+    const GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
     derived_params = compute_derived_params(&current_config, &bounds);
 
