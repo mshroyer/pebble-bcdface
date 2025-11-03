@@ -74,7 +74,7 @@ static config_t default_config() {
 /**
  * Calculate and save derived values based on current configuration.
  */
-static derived_params_t compute_derived_params(const config_t *config) {
+static derived_params_t compute_derived_params(const config_t *config, const GRect *bounds) {
     derived_params_t result = {
         .tick_unit = MINUTE_UNIT,
         .dot_radius = 10,
@@ -82,8 +82,6 @@ static derived_params_t compute_derived_params(const config_t *config) {
         .col_offset = 0,
     };
 
-    Layer *window_layer = window_get_root_layer(window);
-    const GRect bounds = layer_get_bounds(window_layer);
     const int16_t num_cols = config->second_tick ? 6 : 4;
 
     if (config->second_tick) {
@@ -91,9 +89,9 @@ static derived_params_t compute_derived_params(const config_t *config) {
         result.dot_radius = 8;
     }
 
-    result.col_spacing = (bounds.size.w - 2 * num_cols * result.dot_radius) / (num_cols + 1);
+    result.col_spacing = (bounds->size.w - 2 * num_cols * result.dot_radius) / (num_cols + 1);
     result.col_offset =
-        (bounds.size.w - result.col_spacing * (num_cols - 1) - 2 * num_cols * result.dot_radius) /
+        (bounds->size.w - result.col_spacing * (num_cols - 1) - 2 * num_cols * result.dot_radius) /
         2;
 
     return result;
@@ -125,7 +123,10 @@ static void apply_config(const config_t *config) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Applying configuration");
 
     current_config = *config;
-    derived_params = compute_derived_params(config);
+
+    Layer *window_layer = window_get_root_layer(window);
+    const GRect bounds = layer_get_bounds(window_layer);
+    derived_params = compute_derived_params(config, &bounds);
 }
 
 /**
@@ -270,10 +271,10 @@ static void manually_invoke_ui_event_handlers() {
 static void window_load(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "window_load callback");
 
-    derived_params = compute_derived_params(&current_config);
-
     Layer *window_layer = window_get_root_layer(window);
     const GRect bounds = layer_get_bounds(window_layer);
+
+    derived_params = compute_derived_params(&current_config, &bounds);
 
     main_layer = layer_create((GRect){.origin = {0, 0}, .size = {bounds.size.w, bounds.size.h}});
     date_layer = text_layer_create((GRect){.origin = {0, 0}, .size = {bounds.size.w, 40}});
