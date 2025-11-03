@@ -1,17 +1,17 @@
 #include <pebble.h>
 
-/*** Windows and layers ***/
+/* Windows and layers */
 
 static Window *window = NULL;
 static Layer *main_layer = NULL;
 static TextLayer *date_layer = NULL;
 static BitmapLayer *bt_layer = NULL;
 
-/*** Resources ***/
+/* Resources */
 
 static GBitmap *bt_bitmap = NULL;
 
-/*** Runtime configuration ***/
+/* Runtime configuration */
 
 #define CONFIG_STORAGE_KEY 1
 
@@ -31,7 +31,7 @@ typedef struct {
 
 static config_t current_config = {0};
 
-/*** Derived parameters ***/
+/* Derived parameters */
 
 typedef struct {
     /* Timer event unit */
@@ -49,7 +49,7 @@ typedef struct {
 
 static derived_params_t derived_params = {0};
 
-/*** Runtime state ***/
+/* Runtime state */
 
 #define DATE_STR_SZ 11
 
@@ -296,7 +296,6 @@ static void window_appear(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "window_appear callback");
 
     window_visible = true;
-
     subscribe_ui_event_handlers();
 
     /*
@@ -356,7 +355,6 @@ static void deinit() {
 
 int main() {
     init();
-
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
 
     app_event_loop();
