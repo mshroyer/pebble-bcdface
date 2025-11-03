@@ -74,7 +74,7 @@ static config_t default_config() {
 /**
  * Calculate and save derived values based on current configuration.
  */
-static derived_params_t compute_derived(const config_t *config) {
+static derived_params_t compute_derived_params(const config_t *config) {
     derived_params_t result = {
         .tick_unit = MINUTE_UNIT,
         .dot_radius = 10,
@@ -125,7 +125,7 @@ static void apply_config(const config_t *config) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Applying configuration");
 
     current_config = *config;
-    derived_params = compute_derived(config);
+    derived_params = compute_derived_params(config);
 }
 
 /**
@@ -270,7 +270,7 @@ static void manually_invoke_ui_event_handlers() {
 static void window_load(Window *window) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "window_load callback");
 
-    derived_params = compute_derived(&current_config);
+    derived_params = compute_derived_params(&current_config);
 
     Layer *window_layer = window_get_root_layer(window);
     const GRect bounds = layer_get_bounds(window_layer);
