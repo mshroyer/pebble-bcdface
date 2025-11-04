@@ -17,14 +17,20 @@ watch loses its connection with your phone.
 It was created circa 2013 for the OG Pebble watch, but has been updated to
 build with and run on the new SDK and firmware for the Pebble Core 2 Duo.
 
+Currently supports:
+
+- Pebble Classic (aplite)
+- Pebble Time (basalt)
+- Pebble 2 (diorite)
+
 
 Buliding and compile-time options
 ---------------------------------
 
-To build this watch face you will need the Pebble SDK 2.0-BETA4, available
-here:
+To build this watch face you will need the Pebble SDK 4.9.  Follow the
+developer guide here:
 
-https://developer.getpebble.com/2/getting-started/
+https://developer.rebble.io/sdk/
 
 After following the instructions to download and install the Pebble SDK and
 ARM toolchain, run the command
@@ -32,21 +38,6 @@ ARM toolchain, run the command
     $ pebble build
     
 in the pebble-bcdface directory to build the project.
-
-The watch face's behavior can be modified at compile time by defining or
-undefining the following preprocessor macros (as seen at the top of
-bcdface.c):
-
-- `SHOW_SECONDS`: Show time in seconds
-
-- `NOTIFY_DISCONNECT`: If defined, cause the watch to vibrate and display a
-  "no phone" icon in the upper left corner of the screen if connection is
-  lost with your phone
-
-If you don't want to install the Pebble SDK on your computer, you can
-directly import this project from GitHub into [CloudPebble] and perform
-your compilation there.  This can be especially useful if you're running
-Windows, where the Pebble SDK is not natively supported.
 
 
 See also

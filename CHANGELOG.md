@@ -1,12 +1,11 @@
 # BCD Face Changelog
 
-## Unreleased
+## v2.0
 
-- Added support for arbitrary-sized displays.
 - Seconds display and vibrate-on-disconnect are now configurable at runtime
   through the Settings pane in the Pebble phone app, using
   [clay](https://github.com/pebble/clay).
-- Builds with SDK 4.9.
+- Builds with SDK 4.9 targeting Pebble Classic, Pebble Time, and Pebble 2.
 
 ## v1.0.1
 
