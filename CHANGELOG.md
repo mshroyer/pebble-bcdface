@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Seconds display and vibrate-on-disconnect are now configurable at runtime,
+- Added support for arbitrary-sized displays.
+- Seconds display and vibrate-on-disconnect are now configurable at runtime
   through the Settings pane in the Pebble phone app, using
   [clay](https://github.com/pebble/clay).
 - Builds with SDK 4.9.

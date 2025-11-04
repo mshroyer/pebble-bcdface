@@ -1,7 +1,7 @@
 BCD Face
 ========
 
-A binary clock for Pebble firmware 2.0
+A binary clock for Pebble, updated for firmware 4.9.
 
 ![Screenshot]
 
@@ -10,9 +10,12 @@ Overview
 --------
 
 This is a binary (actually, [binary coded decimal] or BCD) face for the
-Pebble, based on the SDK 2.0 beta.  In addition to showing the current
-time, this watch face will vibrate and display a visual notification if the
+Pebble, based on the SDK version 4.9.  In addition to showing the current
+time, this watch face can vibrate and display a visual notification if the
 watch loses its connection with your phone.
+
+It was created circa 2013 for the OG Pebble watch, but has been updated to
+build with and run on the new SDK and firmware for the Pebble Core 2 Duo.
 
 
 Buliding and compile-time options
